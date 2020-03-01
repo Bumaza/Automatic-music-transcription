@@ -1,0 +1,8 @@
+#some constant for AMT app
+SAMPLE_RATE = 44100
+FFT_SIZE = 1024
+WINDOW_SIZE = 4096
+
+DEFAULT_BPM = 120
+
+SOUNDFONT = "./utils/FluidR3_GM2-2.SF2"

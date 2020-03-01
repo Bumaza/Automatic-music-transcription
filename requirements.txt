@@ -1,0 +1,13 @@
+numpy
+scipy
+matplotlib
+librosa
+skimage
+IPython
+musdb
+keras
+tensorflow
+future==0.17.1
+mido==1.2.9
+PyAudio==0.2.11
+pyFluidSynth==1.2.4
