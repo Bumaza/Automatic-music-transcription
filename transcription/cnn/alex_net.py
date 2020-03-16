@@ -9,6 +9,7 @@ from keras.layers import Dense, Flatten, Reshape, Input
 from keras.layers import Conv2D, MaxPooling2D, GlobalAveragePooling2D, Dropout, Activation
 from keras.models import Sequential
 from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard, CSVLogger
+from keras.utils.vis_utils import plot_model
 from utils.app_setup import *
 
 
@@ -17,7 +18,7 @@ class AlexNet:
     def __init__(self):
         self._model = Sequential()
         self._input_shape = (IMG_WIDTH, IMG_HEIGHT, NUM_CHANNELS)
-        self._num_classes = NUM_CLASSES
+        self._num_classes = TONE_RANGE
         self._dropout = 0.4
 
     def create(self):
@@ -63,6 +64,9 @@ class AlexNet:
 
     def summary(self):
         print(self._model.summary())
+
+    def plot(self, path='./alex_net.png'):
+        plot_model(self._model, to_file=path, show_shapes=True)
 
     def train(self):
         pass
