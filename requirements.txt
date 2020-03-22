@@ -13,3 +13,6 @@ PyAudio==0.2.11
 pyFluidSynth==1.2.4
 pretty_midi==0.2.8
 pydot
+wget
+requests
+BeautifulSoup4

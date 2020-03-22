@@ -19,6 +19,8 @@ MIN_MIDI_TONE = 21
 MAX_MIDI_TONE = 108
 TONE_RANGE = MAX_MIDI_TONE - MIN_MIDI_TONE + 1
 
-
+MIDI_DIR = './datasets/data/midi'
+WAV_DIR = './datasets/data/wav'
+SPECS_DIR = './datasets/data/spectrograms'
 
 SOUNDFONT = "./utils/FluidR3_GM2-2.SF2"
