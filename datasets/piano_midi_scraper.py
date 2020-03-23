@@ -23,19 +23,26 @@ def scrape_page(url):
         link = td.find('a')
         if link is not None:
             yield link.get('href')
+        elif ':' in td.text:
+            m, s = map(int, td.text.split(':'))
+            yield (m, s)
 
 
 def download_midi(url_sufix):
     print('Downloading... ', url_prefix + url_sufix)
-    wget.download(url_prefix + url_sufix,  url_sufix.split('/')[-1])
+    wget.download(url_prefix + url_sufix,  'data/midi/' + url_sufix.split('/')[-1])
 
 
 def scrape_midi_files():
     midi_files = 'midi_files.htm'
+    total_duration = 0
     for composer in scrape_page(url_prefix + midi_files):
         for part in scrape_page(url_prefix + composer):
-            if part.endswith('.mid'):
+            if len(part) == 2:
+                total_duration += (60 * part[0] + part[-1])
+            elif part.endswith('.mid'):
                 download_midi(part)
+    print('Total duration: {0}h:{1}min'.format(total_duration // 3600, (total_duration % 3600) // 60))
 
 
 if __name__ == '__main__':
