@@ -18,7 +18,7 @@ class AlexNet:
     def __init__(self):
         self._model = Sequential()
         self._input_shape = (IMG_WIDTH, IMG_HEIGHT, NUM_CHANNELS)
-        self._num_classes = TONE_RANGE
+        self._num_classes = NOTE_RANGE
         self._dropout = 0.4
 
     def create(self):

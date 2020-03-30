@@ -16,3 +16,4 @@ pydot
 wget
 requests
 BeautifulSoup4
+pretty_midi

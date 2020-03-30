@@ -2,22 +2,30 @@ import librosa
 import librosa.display
 import numpy as np
 import matplotlib.pyplot as plt
+import pretty_midi
+import os
 from subprocess import call
 from utils.app_setup import *
 
 
 def midi2wav(midi_file, output):
     """ Convert midi file to wav
+    before run make sure you have installed fluidsynth
+    (type 'brew install fluidsynth' to your console)
     :param midi_file:
     :param output:
     :return:
     """
-    #brew install fluidsynth
     command = ['fluidsynth', '-a', 'alsa', '-F', output, SOUNDFONT, midi_file]
     return call(command)
 
 
 def wav2spec(y):
+    """ Transform wav file amplitude to
+    time-frequency domain using stft algorithm
+    :param y:
+    :return:
+    """
     D = stft(y)
     S = amp_to_db(np.abs(D)) - REF_LEVEL_DB
     S, D = normalize(S), np.angle(D)
@@ -26,6 +34,12 @@ def wav2spec(y):
 
 
 def spec2wav(spectrogram, phase):
+    """
+
+    :param spectrogram:
+    :param phase:
+    :return:
+    """
     spectrogram, phase = spectrogram.T, phase.T
     # used during inference only
     # spectrogram: enhanced output
@@ -34,13 +48,32 @@ def spec2wav(spectrogram, phase):
     return istft(S, phase)
 
 
-def wav_to_spectrogram(wav_file, output):
-    """ Convert wav file to spectogram
+def wav2cqt_spec(wav_file):
+    """ Convert wav file to cqT spectogram
     :param wav_file:
-    :param output:
     :return:
     """
-    plot_cqt(wav_file, output)
+    y, sr = librosa.load(os.path.join(WAV_DIR, wav_file))
+    C = librosa.cqt(y, sr=sr, fmin=librosa.midi_to_hz(MIN_MIDI_TONE),
+                    hop_length=HOP_LENGTH, bins_per_octave=BIN_PER_OCTAVE, n_bins=N_BINS).T
+    C = np.abs(C)
+    minDB = np.min(C)
+
+    C = np.pad(C, ((WINDOW_SIZE//2, WINDOW_SIZE//2), (0, 0)), 'constant', constant_values=minDB)
+    windows = [ C[i:i+WINDOW_SIZE,:] for i in range(C.shape[0] - WINDOW_SIZE + 1)]
+    return np.array(windows)
+
+
+def midi2labels(midi_file, times):
+    """ Convert midi file to a piano roll
+    :param midi_file:
+    :param times:
+    :return:
+    """
+    pm = pretty_midi.PrettyMIDI(os.path.join(MIDI_DIR, midi_file))
+    piano_roll = pm.get_piano_roll(fs=SAMPLE_RATE, times=times)[MIN_MIDI_TONE:MAX_MIDI_TONE + 1].T
+    piano_roll[piano_roll > 0] = 1
+    return piano_roll
 
 
 def plot_cqt(song, path):
