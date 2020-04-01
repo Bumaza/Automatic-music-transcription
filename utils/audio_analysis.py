@@ -1,9 +1,9 @@
 import librosa
 import librosa.display
 import numpy as np
-import matplotlib.pyplot as plt
 import pretty_midi
 import os
+import sklearn
 from subprocess import call
 from utils.app_setup import *
 
@@ -54,9 +54,11 @@ def wav2cqt_spec(wav_file):
     :return:
     """
     y, sr = librosa.load(os.path.join(WAV_DIR, wav_file))
-    C = librosa.cqt(y, sr=sr, fmin=librosa.midi_to_hz(MIN_MIDI_TONE),
+    # Transpose so that the data is in [frame, bins] format.
+    C = librosa.cqt(y, sr=SAMPLE_RATE, fmin=librosa.midi_to_hz(MIN_MIDI_TONE),
                     hop_length=HOP_LENGTH, bins_per_octave=BIN_PER_OCTAVE, n_bins=N_BINS).T
     C = np.abs(C)
+    C = sklearn.preprocessing.normalize(C)
     minDB = np.min(C)
 
     C = np.pad(C, ((WINDOW_SIZE//2, WINDOW_SIZE//2), (0, 0)), 'constant', constant_values=minDB)
@@ -71,24 +73,9 @@ def midi2labels(midi_file, times):
     :return:
     """
     pm = pretty_midi.PrettyMIDI(os.path.join(MIDI_DIR, midi_file))
-    piano_roll = pm.get_piano_roll(fs=SAMPLE_RATE, times=times)[MIN_MIDI_TONE:MAX_MIDI_TONE + 1].T
+    piano_roll = pm.get_piano_roll(fs=100, times=times)[MIN_MIDI_TONE:MAX_MIDI_TONE + 1].T
     piano_roll[piano_roll > 0] = 1
     return piano_roll
-
-
-def plot_cqt(song, path):
-    """ Save cqt plot of audio signal
-    :param song:
-    :param path:
-    :return:
-    """
-    plt.figure(figsize=(7.5, 3.75))
-    y, sr = librosa.load(song)
-    C = librosa.cqt(y, sr=sr)
-    librosa.display.specshow(librosa.amplitude_to_db(C, ref=np.max), sr=sr)
-    plt.axis('off')
-    plt.savefig(path, bbox_inches="tight")
-    plt.close('all')
 
 
 def stft(y):

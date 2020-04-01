@@ -30,4 +30,6 @@ MIDI_DIR = './datasets/data/midi/'
 WAV_DIR = './datasets/data/wav/'
 SPECS_DIR = './datasets/data/spectrograms/'
 
+MODELS_DIR = './models/'
+
 SOUNDFONT = "./utils/FluidR3_GM2-2.SF2"
