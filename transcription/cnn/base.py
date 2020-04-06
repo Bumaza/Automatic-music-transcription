@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from utils.app_setup import MODELS_DIR
 from keras.models import load_model
 
+
 class NeuralNet(object):
     def __init__(self, name):
         print('Neural Network')
@@ -16,14 +17,14 @@ class NeuralNet(object):
         self.save = None
 
     def create(self, create_new=False):
-        if not create_new and os.path.exists(os.path.join(MODELS_DIR, self.model_name)):
+        if not create_new and os.path.exists(self.model_name):
             return self.load()
 
     def load(self):
         self.model = load_model(self.model_name)
 
     def summary(self):
-        pass
+        print(self.model.summary())
 
     def train(self, X_train, y_train, X_val, y_val):
         if self.model is None:
@@ -35,7 +36,7 @@ class NeuralNet(object):
     def predict(self, X, y=None):
         if self.model is None:
             return
-        y_pred = self.model.predict(X)
+        y_pred = self.model.predict(X, batch_size=self.batch_size, verbose=1)
         self.plot_predict(self.postprocess(y_pred))
 
         if y is not None:

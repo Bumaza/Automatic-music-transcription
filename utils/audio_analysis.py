@@ -58,12 +58,15 @@ def wav2cqt_spec(wav_file):
     C = librosa.cqt(y, sr=SAMPLE_RATE, fmin=librosa.midi_to_hz(MIN_MIDI_TONE),
                     hop_length=HOP_LENGTH, bins_per_octave=BIN_PER_OCTAVE, n_bins=N_BINS).T
     C = np.abs(C)
+    #C = librosa.amplitude_to_db(C, ref=np.max)
     C = sklearn.preprocessing.normalize(C)
     minDB = np.min(C)
 
-    C = np.pad(C, ((WINDOW_SIZE//2, WINDOW_SIZE//2), (0, 0)), 'constant', constant_values=minDB)
-    windows = [ C[i:i+WINDOW_SIZE,:] for i in range(C.shape[0] - WINDOW_SIZE + 1)]
-    return np.array(windows)
+    return C
+
+    #C = np.pad(C, ((WINDOW_SIZE//2, WINDOW_SIZE//2), (0, 0)), 'constant', constant_values=minDB)
+    #windows = [ C[i:i+WINDOW_SIZE,:] for i in range(C.shape[0] - WINDOW_SIZE + 1)]
+    #return np.array(windows)
 
 
 def midi2labels(midi_file, times):

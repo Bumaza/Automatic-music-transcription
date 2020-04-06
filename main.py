@@ -1,5 +1,6 @@
 from os import listdir, path
 from utils.audio_analysis import *
+from utils.midi_utils import *
 from utils.app_setup import *
 from PIL import Image
 import librosa
@@ -15,8 +16,10 @@ from keras.layers import Conv2D, MaxPooling2D, add
 from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard, CSVLogger
 from keras.layers.normalization import BatchNormalization
 from keras.layers import Activation
-from keras.optimizers import SGD
+from keras.optimizers import SGD, Adam
 from keras import backend as K
+from sklearn.preprocessing import normalize
+from transcription.cnn.dnn import DNN
 
 def make_wav_and_spectogram_files():
 
@@ -53,7 +56,7 @@ def baseline_model():
 
     conv2 = Conv2D(50,(3,5),activation='tanh')(pool1)
     do2 = Dropout(0.5)(conv2)
-    pool2 = MaxPooling2D(pool_size=(1,3))(do2)
+    pool2 = MaxPooling2D(pool_size=(1, 3))(do2)
 
     flattened = Flatten()(pool2)
     fc1 = Dense(1000, activation='sigmoid')(flattened)
@@ -65,6 +68,7 @@ def baseline_model():
 
     model = Model(inputs=inputs, outputs=outputs)
     return model
+
 
 def test_piano_roll(filename):
     test_mid = path.join(MIDI_DIR, filename)
@@ -83,52 +87,104 @@ def test_piano_roll(filename):
     print("cQT")
     print(C.shape)
 
-    #inputnp = wav2inputnp(audio_fn, spec_type=spec_type, bin_multiple=bin_multiple)
-    #times = librosa.frames_to_time(np.arange(inputnp.shape[0]), sr=sr, hop_length=hop_length)
 
-    #piano_roll = pm.get_piano_roll(fs=sr, times=times)[MIN_MIDI_TONE:MAX_MIDI_TONE + 1].T
-    #piano_roll[piano_roll > 0] = 1
+class linear_decay(Callback):
+    '''
+        decay = decay value to subtract each epoch
+    '''
+    def __init__(self, initial_lr,epochs):
+        super(linear_decay, self).__init__()
+        self.initial_lr = initial_lr
+        self.decay = initial_lr/epochs
+
+    def on_epoch_begin(self, epoch, logs={}):
+        new_lr = self.initial_lr - self.decay*epoch
+        print("ld: learning rate is now "+str(new_lr))
+        K.set_value(self.model.optimizer.lr, new_lr)
 
 
-    #plot_cqt(test_wav, path.join(SPECS_DIR, 'chopin.jpg'))
+class Threshold(Callback):
+    '''
+        decay = decay value to subtract each epoch
+    '''
+    def __init__(self, val_data):
+        super(Threshold, self).__init__()
+        self.val_data = val_data
+        _,y = val_data
+        self.othresholds = np.full(y.shape[1],0.5)
 
-    #librosa.display.specshow(librosa.amplitude_to_db(d, ref = np.max),y_axis = 'log', x_axis = 'time')
+    def on_epoch_end(self, epoch, logs={}):
+        #find optimal thresholds on validation data
+        x,y_true = self.val_data
+        y_scores = self.model.predict(x)
+        self.othresholds = self.opt_thresholds(y_true,y_scores)
+        y_pred = y_scores > self.othresholds
+        p,r,f,s = sklearn.metrics.precision_recall_fscore_support(y_true,y_pred,average='micro')
+        print("validation p,r,f,s:", p,r,f,s)
 
-    # librosa.display.specshow(librosa.amplitude_to_db(C, ref=np.max), sr=sr)
-    # plt.show()
-    # #TODO
-    #
-    # #TODO crop image
-    # im = Image.open(path.join(SPECS_DIR, 'chopin.jpg'))
-    # im = im.crop((14, 13, 594, 301))
-    # im.show()
+    def opt_thresholds(y_true, y_scores):
+        othresholds = np.zeros(y_scores.shape[1])
+        print(othresholds.shape)
+        for label, (label_scores, true_bin) in enumerate(zip(y_scores.T, y_true.T)):
+            # print label
+            precision, recall, thresholds = sklearn.metrics.precision_recall_curve(true_bin, label_scores)
+            max_f1 = 0
+            max_f1_threshold = .5
+            for r, p, t in zip(recall, precision, thresholds):
+                if p + r == 0: continue
+                if (2 * p * r) / (p + r) > max_f1:
+                    max_f1 = (2 * p * r) / (p + r)
+                    max_f1_threshold = t
+            # print label, ": ", max_f1_threshold, "=>", max_f1
+            othresholds[label] = max_f1_threshold
+            print(othresholds)
+        return othresholds
 
-    # for i in range(60, 83):
-    #     l = len(roll[i])
-    #     r = roll[i][l//3:l//3+10]
-    #     r[r > 0] = 1
-    #     print(i, ": ", r)
+
+def show_spectrograms():
+    pass
+
+
+def recall_m(y_true, y_pred):
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    recall = true_positives / (possible_positives + K.epsilon())
+    return recall
+
+
+def precision_m(y_true, y_pred):
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    precision = true_positives / (predicted_positives + K.epsilon())
+    return precision
+
+
+def f1_m(y_true, y_pred):
+    precision = precision_m(y_true, y_pred)
+    recall = recall_m(y_true, y_pred)
+    return 2*((precision*recall)/(precision+recall+K.epsilon()))
+
+
+def load_data_and_test_3dnn():
+    # load preprocessing data
+    X_all, y_all = np.load('input_sequential_data.npy'), np.load('output_sequential_data.npy')
+    size = X_all.shape[0]
+
+    # split data by ration 60:20:20
+    s_60p, s_20p = int(size * 0.6), int(size * 0.2)
+
+    X_train, y_train = X_all[:s_60p], y_all[:s_60p]
+    X_val, y_val = X_all[s_60p:s_60p+s_20p], y_all[s_60p:s_60p+s_20p]
+    X_test, y_test = X_all[s_60p+s_20p:], y_all[s_60p+s_20p:]
+
+    dnn = DNN(256, 3)
+    dnn.create()
+
+    dnn.summary()
+    dnn.train(X_train, y_train, X_val, y_val)
+    dnn.predict(X_test[:min(len(X_test, 3000))], y_test[:min(len(X_test, 3000))])
 
 
 if __name__ == '__main__':
-    #test_mid2wav('new_song.mid')
-    #test_wav2specs2wav()
-    #make_wav_and_spectogram_files()
-    #test_piano_roll('chpn-p18.mid')
-    #test_piano_roll('alb_esp1.mid')]
-
-    X = wav2cqt_spec('alb_esp1.wav')
-    times = librosa.frames_to_time(np.arange(X.shape[0]), sr=SAMPLE_RATE, hop_length=HOP_LENGTH)
-    y = midi2labels('alb_esp1.mid', times)
-
-    print(X.shape)
-    print(y.shape)
-
-    model = baseline_model()
-    model.compile(loss='binary_crossentropy', optimizer=SGD(momentum=0.9))
-    print(model.summary())
-    result = model.fit(X, y, epochs=3, validation_data=(X, y))
-    print(result.history)
-
-
+    load_data_and_test_3dnn()
 
