@@ -19,10 +19,28 @@ from keras.layers import Activation
 from keras.optimizers import SGD, Adam
 from keras import backend as K
 from sklearn.preprocessing import normalize
+from transcription.cnn.dnn import DNN
 
 
 def main():
-    model = load_model(os.path.join(MODELS_DIR, 'ckpt.h5'))
+
+    X, y = None, None
+
+    if FOLK_DEBUG:
+        X = wav2cqt_spec('polovnicek.MP3')
+        times = librosa.frames_to_time(np.arange(X.shape[0]), sr=SAMPLE_RATE, hop_length=HOP_LENGTH)
+        y = midi2labels('polovnicek.MID', times)
+    else:
+        X = wav2cqt_spec('alb_esp{0}.wav'.format(1))
+        times = librosa.frames_to_time(np.arange(X.shape[0]), sr=SAMPLE_RATE, hop_length=HOP_LENGTH)
+        y = midi2labels('alb_esp{0}.mid'.format(1), times)
+
+    model = load_model('lstm3.hdf5')
+
+    dnn = DNN(3, 256)
+    dnn.set_model(model)
+
+    dnn.predict(X, y)
 
 
 if __name__ == '__main__':

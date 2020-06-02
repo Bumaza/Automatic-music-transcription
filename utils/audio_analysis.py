@@ -48,25 +48,36 @@ def spec2wav(spectrogram, phase):
     return istft(S, phase)
 
 
-def wav2cqt_spec(wav_file):
+def wav2cqt_spec(wav_file, windowed = False):
     """ Convert wav file to cqT spectogram
     :param wav_file:
     :return:
     """
-    y, sr = librosa.load(os.path.join(WAV_DIR, wav_file))
+    y, sr = librosa.load(os.path.join(WAV_DIR, wav_file), sr=SAMPLE_RATE)
     # Transpose so that the data is in [frame, bins] format.
     C = librosa.cqt(y, sr=SAMPLE_RATE, fmin=librosa.midi_to_hz(MIN_MIDI_TONE),
                     hop_length=HOP_LENGTH, bins_per_octave=BIN_PER_OCTAVE, n_bins=N_BINS).T
     C = np.abs(C)
     #C = librosa.amplitude_to_db(C, ref=np.max)
-    C = sklearn.preprocessing.normalize(C)
-    minDB = np.min(C)
+    #C = sklearn.preprocessing.normalize(C)
+    #minDB = np.min(C)
+
+    if windowed:
+        windows = [C[i:i + WINDOW_SIZE, :] for i in range(C.shape[0] - WINDOW_SIZE + 1)]
+        return np.array(windows)
 
     return C
 
-    #C = np.pad(C, ((WINDOW_SIZE//2, WINDOW_SIZE//2), (0, 0)), 'constant', constant_values=minDB)
-    #windows = [ C[i:i+WINDOW_SIZE,:] for i in range(C.shape[0] - WINDOW_SIZE + 1)]
-    #return np.array(windows)
+
+def wav_to_mel(wav_file):
+  """Transforms the contents of a wav file into a series of mel spec frames."""
+  y, _ = librosa.load(os.path.join(WAV_DIR, wav_file))
+
+  mel = librosa.feature.melspectrogram(y,SAMPLE_RATE, hop_length=512, fmin=librosa.midi_to_hz(MIN_MIDI_TONE), n_mels=229)
+
+  # Transpose so that the data is in [frame, bins] format.
+  mel = mel.T
+  return mel
 
 
 def midi2labels(midi_file, times):
@@ -86,7 +97,7 @@ def stft(y):
      :param y:
      :return:
      """
-    return librosa.stft(y=y, n_fft=FFT_SIZE,
+    return librosa.stft(y=y,
                         hop_length=HOP_LENGTH,
                         win_length=WIN_LENGTH)
 

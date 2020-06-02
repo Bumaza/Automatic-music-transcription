@@ -17,7 +17,7 @@ def stft(file):
     D = librosa.stft(y)
     print(D.shape)
     librosa.display.specshow(librosa.amplitude_to_db(D, ref=np.max),
-                             y_axis='log', x_axis='time', sr=sr)
+                             y_axis='log', x_axis='time', sr=SAMPLE_RATE)
     plt.title('short-time Fourier transform of ' + file)
     plt.colorbar(format='%+2.0f dB')
     plt.tight_layout()
@@ -33,7 +33,8 @@ def stft(file):
 def plot_cqt(file, hop_length=512, bins=1):
     y, sr = librosa.load(os.path.join(WAV_DIR, file))
     print('SAMPLE RATE: ', sr)
-    C = np.abs(librosa.cqt(y, sr=sr, hop_length=hop_length, bins_per_octave=12*bins, n_bins=NOTE_RANGE*bins))
+
+    C = np.abs(librosa.cqt(y, sr=SAMPLE_RATE, hop_length=HOP_LENGTH, bins_per_octave=12*bins, n_bins=NOTE_RANGE*bins))
     am = librosa.amplitude_to_db(C, ref=np.max)
     librosa.display.specshow(am, y_axis='cqt_note', x_axis='time', sr=sr, hop_length=hop_length, bins_per_octave=12*bins)
     plt.title('constant-Q transform of ' + file)
@@ -43,13 +44,15 @@ def plot_cqt(file, hop_length=512, bins=1):
 
     plt.show()
 
+    print(C.shape)
 
-    # times = librosa.frames_to_time(np.arange(C.shape[-1]), sr=SAMPLE_RATE, hop_length=HOP_LENGTH)
-    # showroll(times)
+
+    times = librosa.frames_to_time(np.arange(C.shape[-1]), sr=SAMPLE_RATE, hop_length=HOP_LENGTH)
+    showroll(times)
 
 
 def showroll(times=None):
-    song = 'alb_esp1.mid'
+    song = 'test_maps.mid'
     pm = pretty_midi.PrettyMIDI(os.path.join(MIDI_DIR, song))
     piano_roll = pm.get_piano_roll(fs=100, times=times)[MIN_MIDI_TONE:MAX_MIDI_TONE + 1].T
     piano_roll[piano_roll > 0] = 1
@@ -66,10 +69,11 @@ def showroll(times=None):
     plt.show()
 
 
-
 if __name__ == '__main__':
-    #stft('alb_esp1.wav')
-    #plot_cqt('alb_esp1.wav')
-    #showroll()
+    pretty_midi.pretty_midi.MAX_TICK = 1e10
+
+    stft('test_maps.wav')
+    plot_cqt('test_maps.wav')
+
 
     showroll()

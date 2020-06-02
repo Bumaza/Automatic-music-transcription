@@ -167,24 +167,46 @@ def f1_m(y_true, y_pred):
 
 def load_data_and_test_3dnn():
     # load preprocessing data
-    X_all, y_all = np.load('input_sequential_data.npy'), np.load('output_sequential_data.npy')
-    size = X_all.shape[0]
-
-    # split data by ration 60:20:20
-    s_60p, s_20p = int(size * 0.6), int(size * 0.2)
-
-    X_train, y_train = X_all[:s_60p], y_all[:s_60p]
-    X_val, y_val = X_all[s_60p:s_60p+s_20p], y_all[s_60p:s_60p+s_20p]
-    X_test, y_test = X_all[s_60p+s_20p:], y_all[s_60p+s_20p:]
+    # X_all, y_all = np.load('input_sequential_data.npy'), np.load('output_sequential_data.npy')
+    # size = X_all.shape[0]
+    #
+    # # split data by ration 60:20:20
+    # s_60p, s_20p = int(size * 0.6), int(size * 0.2)
+    #
+    # X_train, y_train = X_all[:s_60p], y_all[:s_60p]
+    # X_val, y_val = X_all[s_60p:s_60p+s_20p], y_all[s_60p:s_60p+s_20p]
+    # X_test, y_test = X_all[s_60p+s_20p:], y_all[s_60p+s_20p:]
 
     dnn = DNN(256, 3)
     dnn.create()
 
     dnn.summary()
-    dnn.train(X_train, y_train, X_val, y_val)
-    dnn.predict(X_test[:min(len(X_test, 3000))], y_test[:min(len(X_test, 3000))])
+    #dnn.train(X_train, y_train, X_val, y_val)
+    #dnn.predict(X_test[:min(len(X_test, 3000))], y_test[:min(len(X_test, 3000))])
+
+
+
+def separate_channels():
+    prefix = './datasets/folk/'
+    midis = [x for x in listdir(prefix) if x.lower().endswith('.mid')]
+    ins = ['accordeon', 'bass', 'bracsa']
+
+    for midi in midis:
+        pm = pretty_midi.PrettyMIDI(prefix+midi)
+        print(midi, len(pm.instruments))
+        if len(pm.instruments) >= 3:
+            print('SPLITING ', midi)
+            for i in range(len(pm.instruments)):
+                cpm = pretty_midi.PrettyMIDI(prefix + midi)
+                cpm.instruments = [pm.instruments[i]]
+                cpm.write('./datasets/midi/{0}/{1}'.format(ins[i], midi))
+
 
 
 if __name__ == '__main__':
-    load_data_and_test_3dnn()
+    #load_data_and_test_3dnn()
+    #separate_channels()
+    midi2wav('./datasets/folk/13.mid', './datasets/folk/test.wav')
+
+
 

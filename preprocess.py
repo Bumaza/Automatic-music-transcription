@@ -22,7 +22,7 @@ def sequential_preprocess():
             elif X.shape[0] == y.shape[0]:
                 X_all, y_all = np.concatenate((X_all, X)), np.concatenate((y_all, y))
 
-            print('{0}/{1} {2}'.format(i, length, wav), X.shape, '/', X_all.shape, y.shape, '/', y_all.shape)
+            print('{0}/{1} {2} {3}.mid'.format(i, length, wav, wav.split('.')[0]), X.shape, '/', X_all.shape, y.shape, '/', y_all.shape)
             i += 1
 
         except FileNotFoundError as err:
@@ -32,11 +32,11 @@ def sequential_preprocess():
 
     print(X_all.shape, y_all.shape)
 
-    np.save('input_sequential_data.npy', X_all) # ~10GB
-    np.save('output_sequential_data.npy', y_all)# ~2GB
+    np.save('input_sequential_data2.npy', X_all) # ~10GB
+    np.save('output_sequential_data2.npy', y_all)# ~2GB
 
-    X_all, y_all = np.load('input_sequential_data.npy'), np.load('output_sequential_data.npy')
-    print(X_all.shape, y_all.shape)
+    # X_all, y_all = np.load('input_sequential_data.npy'), np.load('output_sequential_data.npy')
+    # print(X_all.shape, y_all.shape)
 
 
 if __name__ == '__main__':
