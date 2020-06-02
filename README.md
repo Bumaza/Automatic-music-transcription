@@ -1,5 +1,6 @@
-# Automatic music transcription
+# Polyphonic music transcription via Deep Neural Networks
 
+The pmt_dnn.pynb is only relevant file for this bachelor thesis.
 
 ## Datasets
 To evaluate the perfomance of different approaches, we use of multiple datasets
