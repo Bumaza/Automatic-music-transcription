@@ -1,6 +1,8 @@
 # Polyphonic music transcription via Deep Neural Networks
 
 The pmt_dnn.pynb is only relevant file for this bachelor thesis.
+Since we were not able to train our models in our personal laptop, we migrate to Google Colab Notebook.
+
 
 ## Datasets
 To evaluate the perfomance of different approaches, we use of multiple datasets
